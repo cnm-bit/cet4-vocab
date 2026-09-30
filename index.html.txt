@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>四级词汇离线学习软件｜选择题+拼写+错题本</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: system-ui, sans-serif;
+        }
+        body {
+            background-color: #f0f4f8;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding:16px;
+        }
+        .container {
+            background: #ffffff;
+            width: 100%;
+            max-width: 540px;
+            border-radius: 18px;
+            padding:28px;
+            box-shadow: 0 4px 18px rgba(0,0,0,0.1);
+        }
+        .top-bar{
+            display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;
+        }
+        .mode-btn,.func-btn{
+            flex:1;min-width:110px;padding:11px 6px;border:2px solid #cbd5e0;
+            background:#fff;border-radius:10px;font-size:14px;cursor:pointer;
+        }
+        .mode-btn.active{
+            background:#2b6cb0;color:white;border-color:#2b6cb0;
+        }
+        .func-btn.danger{
+            border-color:#e53e3e;color:#c53030;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 22px;
+        }
+        .score {
+            font-size: 18px;
+            font-weight: 600;
+            color:#2b6cb0;
+        }
+        .count {
+            color:#666666;
+        }
+        .word-card {
+            background-color:#edf2fb;
+            border-radius:12px;
+            padding:30px 18px;
+            text-align:center;
+            margin-bottom:22px;
+        }
+        .en-word {
+            font-size:32px;
+            font-weight:bold;
+            color:#1a202c;
+            margin-bottom:10px;
+        }
+        .cn-desc{
+            font-size:22px;font-weight:500;color:#2d3748;margin-bottom:6px;
+        }
+        .tip {
+            color:#718096;
+            font-size:15px;
+        }
+        .options-wrap {
+            display:grid;
+            grid-template-columns: 1fr 1fr;
+            gap:14px;
+        }
+        .option-btn {
+            padding:16px;
+            border:2px solid #cbd5e0;
+            background:#ffffff;
+            border-radius:10px;
+            font-size:16px;
+            cursor:pointer;
+            transition:0.2s;
+        }
+        .option-btn:hover {
+            border-color:#4299e1;
+            background:#f0f7ff;
+        }
+        .option-btn.right {
+            background-color:#48bb78;
+            color:#ffffff;
+            border-color:#48bb78;
+        }
+        .option-btn.wrong {
+            background-color:#f56565;
+            color:#ffffff;
+            border-color:#f56565;
+        }
+        .spell-wrap{
+            display:flex;flex-direction:column;gap:14px;
+        }
+        .spell-input{
+            padding:14px 16px;border:2px solid #cbd5e0;border-radius:10px;
+            font-size:20px;text-align:center;
+        }
+        .spell-msg{
+            text-align:center;font-size:16px;min-height:24px;
+        }
+        .msg-right{color:#38a169;}
+        .msg-wrong{color:#e53e3e;}
+
+        .next-btn {
+            width:100%;
+            margin-top:20px;
+            padding:14px;
+            background:#3182ce;
+            color:#ffffff;
+            border:none;
+            border-radius:10px;
+            font-size:17px;
+            cursor:pointer;
+        }
+        .next-btn:disabled {
+            background:#a0aec0;
+            cursor:not-allowed;
+        }
+        .result-block {
+            text-align:center;
+            display:none;
+        }
+        .result-block h2 {
+            margin-bottom:16px;
+            color:#2d3748;
+        }
+        .restart {
+            padding:12px 28px;
+            background:#38a169;
+            color:#ffffff;
+            border:none;
+            border-radius:8px;
+            font-size:16px;
+            cursor:pointer;
+        }
+        .hide{display:none !important;}
+
+        .notebook-view{
+            display:none;
+        }
+        .notebook-title{
+            text-align:center;font-size:22px;margin-bottom:16px;
+        }
+        .error-item{
+            padding:12px;border-bottom:1px solid #e2e8f0;
+        }
+        .error-en{font-weight:bold;font-size:17px;}
+        .error-cn{color:#4a5568;margin-top:4px;}
+        .empty-tip{text-align:center;color:#718096;padding:30px 0;}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="top-bar">
+            <button class="mode-btn active" data-mode="en2cn">英→中 选择</button>
+            <button class="mode-btn" data-mode="cn2en">中→英 选择</button>
+            <button class="mode-btn" data-mode="spell">中文拼写</button>
+            <button class="func-btn" id="openNoteBook">📖错题本</button>
+        </div>
+
+        <div id="gameView">
+            <div class="header">
+                <div class="score">得分：<span id="score">0</span></div>
+                <div class="count">题目：<span id="current">1</span>/15</div>
+            </div>
+            <div class="word-card">
+                <div class="en-word" id="enWord"></div>
+                <div class="cn-desc" id="cnDesc"></div>
+                <div class="tip" id="tipText"></div>
+            </div>
+
+            <div class="options-wrap" id="optionBox"></div>
+
+            <div class="spell-wrap hide" id="spellBox">
+                <input class="spell-input" id="spellInput" placeholder="请输入英文单词">
+                <div class="spell-msg" id="spellMsg"></div>
+            </div>
+
+            <button class="next-btn" id="nextBtn" disabled>下一题</button>
+        </div>
+
+        <div class="result-block" id="resultView">
+            <h2>答题结束！</h2>
+            <p style="font-size:20px;margin-bottom:20px">你的得分：<span id="finalScore"></span> /15</p>
+            <button class="restart" onclick="startGame()">再来一局</button>
+        </div>
+
+        <div class="notebook-view" id="noteBookView">
+            <div class="notebook-title">📖 错题本</div>
+            <div id="errorListWrap"></div>
+            <div style="display:flex;gap:10px;margin-top:20px;">
+                <button class="next-btn" id="startErrorQuiz">刷错题集</button>
+                <button class="func-btn danger" id="clearError">清空错题</button>
+            </div>
+            <button class="restart" style="width:100%;margin-top:12px" id="backGame">返回答题</button>
+        </div>
+    </div>
+
+<script>
+const wordList = [
+    {en:"abandon",cn:"抛弃，放弃"},
+    {en:"absorb",cn:"吸收；使全神贯注"},
+    {en:"access",cn:"通道；使用权"},
+    {en:"acquire",cn:"获得，取得"},
+    {en:"adapt",cn:"适应；改编"},
+    {en:"adequate",cn:"足够的；适当的"},
+    {en:"adjust",cn:"调整，调节"},
+    {en:"adopt",cn:"采纳；收养"},
+    {en:"affect",cn:"影响；使感动"},
+    {en:"analyze",cn:"分析"},
+    {en:"approach",cn:"方法；靠近"},
+    {en:"assess",cn:"评估，评价"},
+    {en:"assume",cn:"假定；承担"},
+    {en:"authority",cn:"权威；当局"},
+    {en:"available",cn:"可获得的；有空的"},
+    {en:"benefit",cn:"益处；有益于"},
+    {en:"campaign",cn:"运动；战役"},
+    {en:"challenge",cn:"挑战"},
+    {en:"circumstance",cn:"情况，环境"},
+    {en:"concentrate",cn:"集中，专心"},
+    {en:"consequence",cn:"后果，结果"},
+    {en:"considerable",cn:"相当大的；重要的"},
+    {en:"consume",cn:"消耗；消费"},
+    {en:"contribute",cn:"贡献；促成"},
+    {en:"convince",cn:"说服，使确信"},
+    {en:"decline",cn:"下降；谢绝"},
+    {en:"defect",cn:"缺点，缺陷"},
+    {en:"demonstrate",cn:"证明；展示"},
+    {en:"determine",cn:"确定，下决心"},
+    {en:"diminish",cn:"减少，降低"}
+];
+
+let score = 0;
+let currentIndex = 0;
+let questions = [];
+let answered = false;
+let gameMode = "en2cn";
+let useErrorBank = false;
+
+const scoreDom = document.getElementById('score');
+const currentDom = document.getElementById('current');
+const enWordDom = document.getElementById('enWord');
+const cnDescDom = document.getElementById('cnDesc');
+const tipTextDom = document.getElementById('tipText');
+const optionBox = document.getElementById('optionBox');
+const spellBox = document.getElementById('spellBox');
+const spellInput = document.getElementById('spellInput');
+const spellMsg = document.getElementById('spellMsg');
+const nextBtn = document.getElementById('nextBtn');
+const gameView = document.getElementById('gameView');
+const resultView = document.getElementById('resultView');
+const finalScoreDom = document.getElementById('finalScore');
+const noteBookView = document.getElementById('noteBookView');
+const errorListWrap = document.getElementById("errorListWrap");
+const modeBtns = document.querySelectorAll('.mode-btn');
+
+function getErrorWords(){
+    const raw = localStorage.getItem("cet4ErrorWords");
+    return raw ? JSON.parse(raw) : [];
+}
+function saveErrorWord(wordObj){
+    let arr = getErrorWords();
+    const key = wordObj.en;
+    const exist = arr.find(x=>x.en === key);
+    if(!exist){
+        arr.push(wordObj);
+        localStorage.setItem("cet4ErrorWords",JSON.stringify(arr));
+    }
+}
+function clearAllError(){
+    localStorage.removeItem("cet4ErrorWords");
+    renderNoteBook();
+}
+function renderNoteBook(){
+    const list = getErrorWords();
+    errorListWrap.innerHTML = "";
+    if(list.length === 0){
+        errorListWrap.innerHTML = `<div class="empty-tip">错题本为空，快去做题吧</div>`;
+        return;
+    }
+    list.forEach(w=>{
+        const div = document.createElement("div");
+        div.className="error-item";
+        div.innerHTML = `<div class="error-en">${w.en}</div><div class="error-cn">${w.cn}</div>`;
+        errorListWrap.appendChild(div);
+    })
+}
+
+document.getElementById("openNoteBook").onclick = function(){
+    gameView.classList.add("hide");
+    resultView.style.display="none";
+    noteBookView.style.display="block";
+    renderNoteBook();
+}
+document.getElementById("backGame").onclick = function(){
+    noteBookView.style.display="none";
+    gameView.classList.remove("hide");
+}
+document.getElementById("clearError").onclick = clearAllError;
+document.getElementById("startErrorQuiz").onclick = function(){
+    const errList = getErrorWords();
+    if(errList.length===0){alert("错题本是空的！");return;}
+    useErrorBank = true;
+    noteBookView.style.display="none";
+    gameView.classList.remove("hide");
+    startGame();
+}
+
+modeBtns.forEach(btn=>{
+    btn.onclick = ()=>{
+        modeBtns.forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active');
+        gameMode = btn.dataset.mode;
+        useErrorBank = false;
+        startGame();
+    }
+})
+
+function shuffle(arr){
+    let temp = [...arr];
+    for(let i=temp.length-1;i>0;i--){
+        const j = Math.floor(Math.random()*(i+1));
+        [temp[i],temp[j]] = [temp[j],temp[i]];
+    }
+    return temp;
+}
+
+function buildOptions(rightWord,mode){
+    if(mode === "en2cn"){
+        const wrongPool = wordList.filter(w=>w.cn !== rightWord.cn);
+        const wrongs = shuffle(wrongPool).slice(0,3);
+        return shuffle([rightWord,...wrongs]);
+    }else if(mode === "cn2en"){
+        const wrongPool = wordList.filter(w=>w.en !== rightWord.en);
+        const wrongs = shuffle(wrongPool).slice(0,3);
+        return shuffle([rightWord,...wrongs]);
+    }
+}
+
+function renderQuestion(){
+    answered = false;
+    nextBtn.disabled = true;
+    spellMsg.innerText = "";
+    spellInput.value = "";
+    const q = questions[currentIndex];
+    currentDom.innerText = currentIndex+1;
+    optionBox.classList.remove("hide");
+    spellBox.classList.add("hide");
+
+    if(gameMode === "en2cn"){
+        enWordDom.innerText = q.en;
+        cnDescDom.innerText = "";
+        tipTextDom.innerText = "看英文，选出中文释义";
+        optionBox.innerHTML = "";
+        const opts = buildOptions(q,"en2cn");
+        opts.forEach(item=>{
+            const btn = document.createElement('button');
+            btn.className = "option-btn";
+            btn.innerText = item.cn;
+            btn.onclick = ()=>{
+                if(answered) return;answered=true;nextBtn.disabled=false;
+                if(item.cn === q.cn){
+                    btn.classList.add('right');score++;scoreDom.innerText=score;
+                }else{
+                    btn.classList.add('wrong');
+                    optionBox.querySelectorAll('.option-btn').forEach(b=>{
+                        if(b.innerText === q.cn) b.classList.add('right');
+                    })
+                    saveErrorWord(q);
+                }
+            }
+            optionBox.appendChild(btn);
+        })
+    }else if(gameMode === "cn2en"){
+        enWordDom.innerText = "";
+        cnDescDom.innerText = q.cn;
+        tipTextDom.innerText = "看中文，选出对应的英文单词";
+        optionBox.innerHTML = "";
+        const opts = buildOptions(q,"cn2en");
+        opts.forEach(item=>{
+            const btn = document.createElement('button');
+            btn.className = "option-btn";
+            btn.innerText = item.en;
+            btn.onclick = ()=>{
+                if(answered) return;answered=true;nextBtn.disabled=false;
+                if(item.en === q.en){
+                    btn.classList.add('right');score++;scoreDom.innerText=score;
+                }else{
+                    btn.classList.add('wrong');
+                    optionBox.querySelectorAll('.option-btn').forEach(b=>{
+                        if(b.innerText === q.en) b.classList.add('right');
+                    })
+                    saveErrorWord(q);
+                }
+            }
+            optionBox.appendChild(btn);
+        })
+    }else if(gameMode === "spell"){
+        enWordDom.innerText = "????";
+        cnDescDom.innerText = q.cn;
+        tipTextDom.innerText = "根据释义拼写英文单词";
+        optionBox.classList.add("hide");
+        spellBox.classList.remove("hide");
+        spellInput.focus();
+        spellInput.onkeydown = (e)=>{
+            if(e.key==='Enter' && !answered){
+                checkSpell(q);
+            }
+        }
+    }
+}
+
+function checkSpell(q){
+    answered = true;
+    nextBtn.disabled = false;
+    const userAns = spellInput.value.trim().toLowerCase();
+    const real = q.en.toLowerCase();
+    if(userAns === real){
+        spellMsg.innerText = "✅拼写正确";
+        spellMsg.className = "spell-msg msg-right";
+        score++;scoreDom.innerText=score;
+    }else{
+        spellMsg.innerText = `❌错误，正确单词：${q.en}`;
+        spellMsg.className = "spell-msg msg-wrong";
+        saveErrorWord(q);
+    }
+}
+
+nextBtn.onclick = function(){
+    if(gameMode==="spell" && !answered){
+        checkSpell(questions[currentIndex]);
+        return;
+    }
+    currentIndex++;
+    if(currentIndex >= questions.length){
+        showResult();
+    }else{
+        renderQuestion();
+    }
+}
+
+function showResult(){
+    gameView.classList.add("hide");
+    resultView.style.display = 'block';
+    finalScoreDom.innerText = score;
+}
+
+function startGame(){
+    score = 0;
+    currentIndex = 0;
+    scoreDom.innerText = 0;
+    gameView.classList.remove("hide");
+    resultView.style.display = 'none';
+    noteBookView.style.display="none";
+    let sourceList;
+    if(useErrorBank){
+        sourceList = getErrorWords();
+    }else{
+        sourceList = wordList;
+    }
+    questions = shuffle(sourceList).slice(0,15);
+    renderQuestion();
+}
+startGame();
+</script>
+</body>
+</html>
